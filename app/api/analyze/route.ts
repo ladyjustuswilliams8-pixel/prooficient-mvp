@@ -223,6 +223,31 @@ const text = formData.get("text") as string | null;
 const imageFile = formData.get("image") as File | null;
 
 const hasImage = imageFile instanceof File && imageFile.size > 0;
+
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+
+if (hasImage && imageFile) {
+  if (imageFile.size > MAX_IMAGE_BYTES) {
+    return NextResponse.json(
+      { error: "Image is too large. Maximum size is 10 MB." },
+      { status: 413 }
+    );
+  }
+
+  if (!ALLOWED_IMAGE_TYPES.has(imageFile.type)) {
+    return NextResponse.json(
+      { error: "Unsupported image type. Use JPG, PNG, WEBP, or GIF." },
+      { status: 415 }
+    );
+  }
+}
+
 const analysisType = hasImage ? "image" : "claim";
     const supabase = await createClient();
 
@@ -241,15 +266,6 @@ if (!user) {
 }
 
 const userId = user.id;
-    console.log("USER ID:", userId);
-console.log(
-  "SUPABASE URL:",
-  process.env.NEXT_PUBLIC_SUPABASE_URL
-);
-console.log(
-  "SERVICE KEY EXISTS:",
-  !!process.env.SUPABASE_SERVICE_ROLE_KEY
-);
 if (!userId) {
   return NextResponse.json(
     { error: "Missing userId" },
@@ -263,10 +279,10 @@ const { data: profile } = await supabaseAdmin
   .single();
 
 
-const plan = profile?.plan ?? "starter";
 if (
-  profile?.subscription_status !== "active" &&
-  plan !== "starter"
+  !profile ||
+  profile.subscription_status !== "active" ||
+  !profile.plan
 ) {
   return NextResponse.json(
     {
@@ -276,13 +292,15 @@ if (
   );
 }
 
+const plan = profile.plan;
+
 const limits: Record<string, number> = {
   starter: 1,
   pro: 30,
   power: 100,
 };
 
-const DAILY_LIMIT = limits[plan] ?? 1;
+const DAILY_LIMIT = limits[plan] ?? 0;
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -295,7 +313,7 @@ let { data: usage } = await supabaseAdmin
 
 // 👇 CREATE ROW IF IT DOES NOT EXIST
 if (!usage) {
- const { data: newRow, error: insertError } = await supabaseAdmin
+ const { data: newRow } = await supabaseAdmin
   .from("usage_logs")
   .insert({
     user_id: userId,
@@ -304,9 +322,6 @@ if (!usage) {
   })
   .select()
   .single();
-
-console.log("INSERT ERROR:", insertError);
-console.log("NEW ROW:", newRow);
 
   usage = newRow;
 }
@@ -547,3 +562,5 @@ return NextResponse.json(report);
     return NextResponse.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
   }
 }
+
+
