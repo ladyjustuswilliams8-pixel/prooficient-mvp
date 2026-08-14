@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
 
 * {
   box-sizing: border-box;
@@ -33,3 +32,4 @@ textarea {
   border: 1px solid rgba(165, 174, 205, 0.18);
   border-radius: 22px;
 }
+
