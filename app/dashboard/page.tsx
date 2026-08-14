@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import LogoutButton from "@/components/LogoutButton";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -13,14 +14,14 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
+  const { data: profile } = await supabaseAdmin
     .from("profiles")
     .select("plan, subscription_status")
     .eq("id", user.id)
     .single();
     const today = new Date().toISOString().split("T")[0];
 
-const { data: usage } = await supabase
+const { data: usage } = await supabaseAdmin
   .from("usage_logs")
   .select("analysis_count")
   .eq("user_id", user.id)
@@ -35,7 +36,7 @@ const limits: Record<string, number> = {
   power: 100,
 };
 
-const dailyLimit = limits[profile?.plan ?? "starter"];
+const dailyLimit = limits[profile?.plan ?? ""] ?? 0;
 
   return (
     <main className="min-h-screen bg-black text-white p-10">
@@ -57,7 +58,7 @@ const dailyLimit = limits[profile?.plan ?? "starter"];
             </p>
 
             <p className="mt-2">
-              <strong>Plan:</strong> {profile?.plan ?? "Free"}
+              <strong>Plan:</strong> {profile?.plan ?? "No active plan"}
             </p>
 
             <p className="mt-2">
@@ -88,3 +89,5 @@ const dailyLimit = limits[profile?.plan ?? "starter"];
     </main>
   );
 }
+
+
