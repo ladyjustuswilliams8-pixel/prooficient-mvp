@@ -67,6 +67,7 @@ const sampleText = `The last Colts quarterback was Peyton Manning.`;
 
 export default function Home() {
   const supabase = createClient();
+  const [user, setUser] = useState<any>(null);
 
 useEffect(() => {
   async function checkPlan() {
@@ -75,6 +76,8 @@ useEffect(() => {
     } = await supabase.auth.getUser();
 
     if (!user) return;
+
+    setUser(user);
 
     const plan = localStorage.getItem("selected_plan");
 
@@ -106,6 +109,12 @@ useEffect(() => {
   const [report, setReport] = useState<Report | null>(null);
   const [error, setError] = useState("");
 const [imageFile, setImageFile] = useState<File | null>(null);
+
+  async function logout() {
+    await supabase.auth.signOut();
+    setUser(null);
+    window.location.href = "/";
+  }
 
   async function analyze() {
     setLoading(true);
@@ -174,19 +183,39 @@ setReport(data as Report);
       Pricing
     </a>
 
-    <a
-      href="/login"
-      className="text-proofMuted hover:text-white transition"
-    >
-      Login
-    </a>
+    {user ? (
+      <>
+        <a
+          href="/dashboard"
+          className="text-proofMuted hover:text-white transition"
+        >
+          Dashboard
+        </a>
 
-    <a
-      href="/signup"
-      className="rounded-xl bg-proofTeal px-4 py-2 font-bold text-proofNavy hover:opacity-90 transition"
-    >
-      Get Started
-    </a>
+        <button
+          onClick={logout}
+          className="rounded-xl bg-proofTeal px-4 py-2 font-bold text-proofNavy hover:opacity-90 transition"
+        >
+          Logout
+        </button>
+      </>
+    ) : (
+      <>
+        <a
+          href="/login"
+          className="text-proofMuted hover:text-white transition"
+        >
+          Login
+        </a>
+
+        <a
+          href="/signup"
+          className="rounded-xl bg-proofTeal px-4 py-2 font-bold text-proofNavy hover:opacity-90 transition"
+        >
+          Get Started
+        </a>
+      </>
+    )}
 
   </div>
 
@@ -492,3 +521,7 @@ function StatusBadge({ status }: { status: Claim["status"] }) {
     </div>
   );
 }
+
+
+
+
